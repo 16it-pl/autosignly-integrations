@@ -1,6 +1,6 @@
 {
   "name": "@autosignly/twenty",
-  "version": "1.0.2-dev.0",
+  "version": "1.0.2",
   "license": "Apache-2.0",
   "engines": {
     "node": "^24.5.0",
