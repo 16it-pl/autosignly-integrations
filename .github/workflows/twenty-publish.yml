@@ -1,0 +1,39 @@
+name: twenty app publish
+
+# Publishing to npm is what lists the app in the Twenty marketplace.
+# One-time setup: on npmjs.com, add this repository and this workflow as a
+# trusted publisher for the package. Provenance needs a public repository.
+on:
+  push:
+    tags: ['twenty-v*']
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: packages/twenty
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: packages/twenty/.nvmrc
+          registry-url: https://registry.npmjs.org
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Install
+        run: yarn install --immutable
+
+      - name: Publish to npm
+        run: yarn twenty app:publish
