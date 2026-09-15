@@ -1,6 +1,8 @@
 import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineLogicFunction, type RoutePayload } from 'twenty-sdk/define';
 
+import { type Edge } from 'src/logic-functions/utils/graphql-edge.type';
+
 import { LF_RECORD_SIGNATURES_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
 import { type RecordContextObject } from 'src/logic-functions/utils/record-context.type';
 
@@ -10,6 +12,27 @@ export type SignatureSigner = {
   status: string;
   signingOrder: number | null;
   signedAt: string | null;
+};
+
+type SignerNode = {
+  name?: string | null;
+  email?: string | null;
+  status?: string | null;
+  signingOrder?: number | null;
+  signedAt?: string | null;
+};
+
+type SignatureRequestNode = {
+  id?: string | null;
+  name?: string | null;
+  status?: string | null;
+  sentAt?: string | null;
+  completedAt?: string | null;
+  sourceFileName?: string | null;
+  sourceAttachmentId?: string | null;
+  signingLink?: { primaryLinkUrl?: string | null } | null;
+  signedDocument?: { url?: string | null }[] | null;
+  signers?: { edges?: Edge<SignerNode>[] | null } | null;
 };
 
 export type FileSignature = {
@@ -127,7 +150,7 @@ export const listRecordSignaturesHandler = async (
     });
 
     const signatures = (signatureRequests?.edges ?? [])
-      .map((edge) => {
+      .map((edge: Edge<SignatureRequestNode>) => {
         const node = edge?.node;
 
         if (!node?.id) {
@@ -145,21 +168,27 @@ export const listRecordSignaturesHandler = async (
           signingLink: node.signingLink?.primaryLinkUrl || null,
           signedDocumentUrl: node.signedDocument?.[0]?.url ?? null,
           signers: (node.signers?.edges ?? [])
-            .map((signerEdge) => signerEdge?.node)
-            .filter((signer) => signer?.email)
-            .map((signer) => ({
+            .map((signerEdge: Edge<SignerNode>) => signerEdge?.node)
+            .filter((signer: SignerNode | null | undefined) => signer?.email)
+            .map((signer: SignerNode | null | undefined) => ({
               name: signer?.name ?? '',
               email: signer?.email ?? '',
               status: signer?.status ?? '',
               signingOrder: signer?.signingOrder ?? null,
               signedAt: signer?.signedAt ?? null,
             }))
-            .sort((left, right) => (left.signingOrder ?? 0) - (right.signingOrder ?? 0)),
+            .sort(
+              (left: SignatureSigner, right: SignatureSigner) =>
+                (left.signingOrder ?? 0) - (right.signingOrder ?? 0),
+            ),
         };
 
         return signature;
       })
-      .filter((signature): signature is FileSignature => signature !== null);
+      .filter(
+        (signature: FileSignature | null): signature is FileSignature =>
+          signature !== null,
+      );
 
     return {
       success: true,

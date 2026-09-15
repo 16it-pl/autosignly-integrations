@@ -2,6 +2,8 @@ import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineLogicFunction, type RoutePayload } from 'twenty-sdk/define';
 
 import { LF_LIST_RECORD_CONTEXT_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
+import { type Edge } from 'src/logic-functions/utils/graphql-edge.type';
+import { type PersonShape } from 'src/logic-functions/utils/to-signer-candidate.util';
 import { findOpenRequestsByAttachment } from 'src/logic-functions/utils/open-signature-requests.util';
 import {
   type AttachmentOption,
@@ -13,6 +15,17 @@ import {
   PERSON_CANDIDATE_SELECTION,
   toSignerCandidate,
 } from 'src/logic-functions/utils/to-signer-candidate.util';
+
+type AttachmentNode = {
+  id?: string | null;
+  name?: string | null;
+  file?: {
+    fileId?: string | null;
+    label?: string | null;
+    extension?: string | null;
+    url?: string | null;
+  }[] | null;
+};
 
 const SIGNABLE_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'heic', 'heif'];
 
@@ -45,7 +58,7 @@ const loadAttachments = async (
   });
 
   return (attachments?.edges ?? [])
-    .map((edge) => {
+    .map((edge: Edge<AttachmentNode>) => {
       const node = edge?.node;
       const file = node?.file?.[0];
 
@@ -65,8 +78,8 @@ const loadAttachments = async (
 
       return option;
     })
-    .filter((option): option is AttachmentOption => option !== null)
-    .filter((option) => isSignable(option.extension));
+    .filter((option: AttachmentOption | null): option is AttachmentOption => option !== null)
+    .filter((option: AttachmentOption) => isSignable(option.extension));
 };
 
 const loadCandidates = async (
@@ -115,8 +128,13 @@ const loadCandidates = async (
     return {
       recordName: company?.name ?? '',
       candidates: (company?.people?.edges ?? [])
-        .map((edge) => (edge?.node ? toSignerCandidate(edge.node) : null))
-        .filter((candidate): candidate is SignerCandidate => candidate !== null),
+        .map((edge: Edge<PersonShape>) =>
+          edge?.node ? toSignerCandidate(edge.node) : null,
+        )
+        .filter(
+          (candidate: SignerCandidate | null): candidate is SignerCandidate =>
+            candidate !== null,
+        ),
     };
   }
 
@@ -152,9 +170,12 @@ const loadCandidates = async (
     const candidates = pointOfContact
       ? [pointOfContact]
       : (opportunity?.company?.people?.edges ?? [])
-          .map((edge) => (edge?.node ? toSignerCandidate(edge.node) : null))
+          .map((edge: Edge<PersonShape>) =>
+            edge?.node ? toSignerCandidate(edge.node) : null,
+          )
           .filter(
-            (candidate): candidate is SignerCandidate => candidate !== null,
+            (candidate: SignerCandidate | null): candidate is SignerCandidate =>
+              candidate !== null,
           );
 
     return { recordName: opportunity?.name ?? '', candidates };

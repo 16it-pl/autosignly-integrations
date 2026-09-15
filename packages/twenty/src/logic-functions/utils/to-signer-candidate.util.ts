@@ -1,6 +1,6 @@
 import { type SignerCandidate } from 'src/logic-functions/utils/record-context.type';
 
-type PersonShape = {
+export type PersonShape = {
   id?: string | null;
   name?: { firstName?: string | null; lastName?: string | null } | null;
   emails?: { primaryEmail?: string | null } | null;

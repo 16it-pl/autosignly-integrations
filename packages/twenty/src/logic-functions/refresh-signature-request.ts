@@ -7,12 +7,15 @@ import {
   SG_STATUS_SIGNED,
   SR_STATUS_SENT,
 } from 'src/constants/universal-identifiers';
+import { type Edge } from 'src/logic-functions/utils/graphql-edge.type';
 import { readSignedSigners } from 'src/logic-functions/utils/read-signed-signers.util';
 import { createAutosignlyClient } from 'src/logic-functions/utils/create-autosignly-client.util';
 import {
   downloadSignedPdf,
   replaceSourceAttachment,
 } from 'src/logic-functions/utils/signed-file.util';
+
+type SignerStatusNode = { email?: string | null; status?: string | null };
 
 export type RefreshResult = {
   success: boolean;
@@ -73,7 +76,7 @@ export const refreshSignatureRequestHandler = async (
   });
 
   const pendingEmails = new Set(
-    (documentSigners?.edges ?? []).flatMap((edge) => {
+    (documentSigners?.edges ?? []).flatMap((edge: Edge<SignerStatusNode>) => {
       const email = edge?.node?.email;
 
       return isNonEmptyString(email) && edge?.node?.status !== SG_STATUS_SIGNED

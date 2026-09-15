@@ -2,9 +2,11 @@ import { CoreApiClient } from 'twenty-client-sdk/core';
 import { defineLogicFunction, type RoutePayload } from 'twenty-sdk/define';
 
 import { LF_SEARCH_PEOPLE_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
+import { type Edge } from 'src/logic-functions/utils/graphql-edge.type';
 import { type SignerCandidate } from 'src/logic-functions/utils/record-context.type';
 import {
   PERSON_CANDIDATE_SELECTION,
+  type PersonShape,
   toSignerCandidate,
 } from 'src/logic-functions/utils/to-signer-candidate.util';
 
@@ -56,10 +58,15 @@ export const searchPeopleHandler = async (
     return {
       success: true,
       candidates: (people?.edges ?? [])
-        .map((edge) => (edge?.node ? toSignerCandidate(edge.node) : null))
-        .filter((candidate): candidate is SignerCandidate => candidate !== null)
+        .map((edge: Edge<PersonShape>) =>
+          edge?.node ? toSignerCandidate(edge.node) : null,
+        )
+        .filter(
+          (candidate: SignerCandidate | null): candidate is SignerCandidate =>
+            candidate !== null,
+        )
         // Without an address there is nowhere to send the document.
-        .filter((candidate) => candidate.email.includes('@')),
+        .filter((candidate: SignerCandidate) => candidate.email.includes('@')),
     };
   } catch (error) {
     return {

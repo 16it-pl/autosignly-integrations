@@ -1,11 +1,23 @@
 name: twenty app publish
 
-# Publishing to npm is what lists the app in the Twenty marketplace.
-# One-time setup: on npmjs.com, add this repository and this workflow as a
-# trusted publisher for the package. Provenance needs a public repository.
+# Releasing the app, in three deliberate steps:
+#
+#   1. verify   — lint, typecheck and tests on the current -dev.N, to prove the
+#                 tree ships
+#   2. promote  — 1.0.0-dev.0 -> 1.0.0, commit, tag, then 1.0.1-dev.0
+#   3. publish  — build the tagged commit and upload it to npm
+#
+# Publishing to npm is what lists the app in the Twenty marketplace: the
+# catalogue is an npm registry search for the twenty-app keyword, so there is
+# nothing to submit and nobody to ask.
+#
+# Steps 2 and 3 wait for a reviewer of their environment. Without required
+# reviewers configured there, the run passes straight through and the gate is
+# decorative.
+#
+# Everything lives in this one file on purpose: the npm trusted publisher is
+# registered against this file name, so the upload cannot move elsewhere.
 on:
-  push:
-    tags: ['twenty-v*']
   workflow_dispatch:
 
 defaults:
@@ -13,13 +25,113 @@ defaults:
     working-directory: packages/twenty
 
 jobs:
-  publish:
+  verify:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: packages/twenty/.nvmrc
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install
+        run: yarn install --immutable
+
+      - name: Lint
+        run: yarn lint
+
+      # Runs against the stock client, the way a clean checkout sees it.
+      # `yarn twenty apply` rewrites twenty-client-sdk inside node_modules with a
+      # client that knows this app's objects, so anything leaning on that
+      # inference passes for its author and fails here.
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Unit tests
+        run: yarn test:unit
+
+      - name: Report what would be released
+        run: |
+          current=$(node -p "require('./package.json').version")
+          echo "Current version: $current"
+          echo "Promote would release: ${current%%-dev*}"
+
+  promote:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: release-approval
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.cut.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: packages/twenty/.nvmrc
+
+      - id: cut
+        name: Cut the release version and open the next one
+        run: |
+          set -euo pipefail
+
+          current=$(node -p "require('./package.json').version")
+          case "$current" in
+            *-dev.*) ;;
+            *) echo "version '$current' is not a -dev version — nothing to promote" >&2; exit 1 ;;
+          esac
+
+          release="${current%%-dev*}"
+          case "$release" in
+            *.*.*) ;;
+            *) echo "version '$release' is not MAJOR.MINOR.PATCH" >&2; exit 1 ;;
+          esac
+          next="${release%.*}.$(( ${release##*.} + 1 ))-dev.0"
+          tag="twenty/v${release}"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "tag ${tag} already exists — ${release} was already released" >&2
+            exit 1
+          fi
+
+          echo "==> ${current}  ->  release ${release}  (tag ${tag})  ->  next dev ${next}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # --no-git-tag-version: the tag is created below with the package
+          # prefix, since this repository is meant to hold an app per CRM.
+          npm version "$release" --no-git-tag-version
+          git commit -am "release: $(node -p "require('./package.json').name") ${release}"
+          git tag -a "${tag}" -m "${tag}"
+
+          npm version "$next" --no-git-tag-version
+          git commit -am "chore: start ${next} [skip ci]"
+
+          git push origin "HEAD:${GITHUB_REF_NAME}" --follow-tags
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: [verify, promote]
+    runs-on: ubuntu-latest
+    environment: npm-release
+    permissions:
+      # Trusted publishing: npm mints a short-lived credential from this token,
+      # so no NPM_TOKEN has to live in the repository.
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The tag, not the branch: promote left a second commit that already
+          # opened the next dev version.
+          ref: ${{ needs.promote.outputs.tag }}
 
       - uses: actions/setup-node@v4
         with:
@@ -29,11 +141,16 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Update npm
-        run: npm install -g npm@latest
-
       - name: Install
         run: yarn install --immutable
 
       - name: Publish to npm
-        run: yarn twenty app:publish
+        run: |
+          version=$(node -p "require('./package.json').version")
+          case "$version" in
+            *-dev.*) echo "Refusing to publish $version" >&2; exit 1 ;;
+          esac
+          echo "Publishing $version"
+          # Builds the manifest and the public assets, then publishes the built
+          # output directory rather than these sources.
+          yarn twenty app:publish
