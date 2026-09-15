@@ -1,21 +1,56 @@
-import { defineApplicationRole, SystemPermissionFlag } from 'twenty-sdk/define';
+import {
+  defineApplicationRole,
+  STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS,
+  SystemPermissionFlag,
+} from 'twenty-sdk/define';
 
 import {
   APP_DISPLAY_NAME,
-  DEFAULT_ROLE_UNIVERSAL_IDENTIFIER,
+  SIGNATURE_REQUEST_OBJECT_UNIVERSAL_IDENTIFIER,
+  SIGNER_OBJECT_UNIVERSAL_IDENTIFIER,
 } from 'src/constants/universal-identifiers';
 
 export default defineApplicationRole({
-  universalIdentifier: DEFAULT_ROLE_UNIVERSAL_IDENTIFIER,
-  label: `${APP_DISPLAY_NAME} default function role`,
+  universalIdentifier: '67f4ce0c-b0ab-4858-b06a-a04c41a2aabe',
+  label: `${APP_DISPLAY_NAME} default role`,
   description:
-    'Reads the attachments and people on a record to build a signature request, and writes the request, its signers and the signed PDF back.',
+    'Reads the attachment sent for signature, tracks the request and its signers, and writes the signed PDF back over the attachment it came from.',
   canReadAllObjectRecords: true,
   canUpdateAllObjectRecords: true,
-  canSoftDeleteAllObjectRecords: true,
+  canSoftDeleteAllObjectRecords: false,
   canDestroyAllObjectRecords: false,
-  // Without this the settings panel cannot read its own application variables:
-  // the metadata API answers "Entity performing the request does not have
-  // permission" and the panel renders an error instead of the credentials form.
-  permissionFlagUniversalIdentifiers: [SystemPermissionFlag.APPLICATIONS],
+  canUpdateAllSettings: false,
+  canBeAssignedToAgents: false,
+  canBeAssignedToUsers: false,
+  canBeAssignedToApiKeys: false,
+  objectPermissions: [
+    ...[
+      SIGNATURE_REQUEST_OBJECT_UNIVERSAL_IDENTIFIER,
+      SIGNER_OBJECT_UNIVERSAL_IDENTIFIER,
+      STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.attachment.universalIdentifier,
+    ].map((objectUniversalIdentifier) => ({
+      objectUniversalIdentifier,
+      canReadObjectRecords: true,
+      canUpdateObjectRecords: true,
+      canSoftDeleteObjectRecords: false,
+      canDestroyObjectRecords: false,
+    })),
+    ...[
+      STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.person.universalIdentifier,
+      STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.company.universalIdentifier,
+      STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.opportunity.universalIdentifier,
+    ].map((objectUniversalIdentifier) => ({
+      objectUniversalIdentifier,
+      canReadObjectRecords: true,
+      canUpdateObjectRecords: false,
+      canSoftDeleteObjectRecords: false,
+      canDestroyObjectRecords: false,
+    })),
+  ],
+  fieldPermissions: [],
+  permissionFlagUniversalIdentifiers: [
+    SystemPermissionFlag.APPLICATIONS,
+    SystemPermissionFlag.UPLOAD_FILE,
+    SystemPermissionFlag.DOWNLOAD_FILE,
+  ],
 });

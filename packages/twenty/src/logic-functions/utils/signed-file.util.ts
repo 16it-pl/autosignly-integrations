@@ -1,13 +1,11 @@
 import { type CoreApiClient } from 'twenty-client-sdk/core';
 import { MetadataApiClient } from 'twenty-client-sdk/metadata';
-import { STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS } from 'twenty-sdk/define';
 
 import { SR_SIGNED_DOCUMENT_FIELD_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
 import { createAutosignlyClient } from 'src/logic-functions/utils/create-autosignly-client.util';
 
 const ATTACHMENT_FILE_FIELD_UNIVERSAL_IDENTIFIER =
-  STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS.attachment.fields.file
-    .universalIdentifier;
+  '20202020-15db-460e-8166-c7b5d87ad4be';
 
 const asPdfName = (name: string): string =>
   name.toLowerCase().endsWith('.pdf') ? name : `${name}.pdf`;
