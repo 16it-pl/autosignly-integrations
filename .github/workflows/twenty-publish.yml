@@ -11,9 +11,10 @@ name: twenty app publish
 # catalogue is an npm registry search for the twenty-app keyword, so there is
 # nothing to submit and nobody to ask.
 #
-# Only step 3 runs in the "twenty" environment, so that is where the approval
-# sits: the upload is the step nobody can take back. Cutting the version is not
-# gated — it pushes a commit and a tag, which can be undone.
+# Steps 2 and 3 both run in the "twenty" environment, so each waits for a
+# reviewer configured there: once to approve cutting the version, once to
+# approve the upload. Without required reviewers the run passes straight through
+# and the gate is decorative.
 #
 # The environment name is not free to change: it is registered on npm as part of
 # the trusted publisher, and the OIDC token carries it as a claim. A mismatch
@@ -66,6 +67,7 @@ jobs:
   promote:
     needs: verify
     runs-on: ubuntu-latest
+    environment: release-approval
     permissions:
       contents: write
     outputs:
