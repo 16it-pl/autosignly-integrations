@@ -14,9 +14,16 @@ export const describeAutosignlyError = (error: unknown): string => {
   }
 
   const { errorType, errorId } = error as { errorType?: string; errorId?: string };
+
+  const cause = (error as { cause?: { code?: string; syscall?: string; address?: string; port?: number } }).cause;
+  const network = cause?.code
+    ? [cause.code, cause.syscall, cause.address, cause.port].filter(Boolean).join(' ')
+    : undefined;
+
   const details = [
     errorType ? `type ${errorType}` : undefined,
     errorId ? `errorId ${errorId}` : undefined,
+    network,
   ].filter((part): part is string => part !== undefined);
 
   return details.length > 0

@@ -37,3 +37,24 @@ describe('describeAutosignlyError', () => {
     expect(describeAutosignlyError('boom')).toBe('Autosignly rejected the request.');
   });
 });
+
+describe('describeAutosignlyError, network failures', () => {
+  it('names the reason a connection never reached the API', () => {
+    const error = new Error('fetch failed');
+
+    (error as { cause?: unknown }).cause = {
+      code: 'ENETUNREACH',
+      syscall: 'connect',
+      address: '104.21.53.12',
+      port: 443,
+    };
+
+    expect(describeAutosignlyError(error)).toBe(
+      'fetch failed (ENETUNREACH connect 104.21.53.12 443)',
+    );
+  });
+
+  it('leaves a plain message alone when there is no cause', () => {
+    expect(describeAutosignlyError(new Error('fetch failed'))).toBe('fetch failed');
+  });
+});

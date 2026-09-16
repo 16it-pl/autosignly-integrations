@@ -5,6 +5,7 @@ import { kv } from 'twenty-sdk/logic-function';
 
 import { LF_REGISTER_WEBHOOK_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
 import { createAutosignlyClient } from 'src/logic-functions/utils/create-autosignly-client.util';
+import { describeAutosignlyError } from 'src/logic-functions/utils/describe-autosignly-error.util';
 import {
   getWebhookClaimKey,
   WEBHOOK_CLAIM_TOKEN_KV_KEY,
@@ -38,7 +39,7 @@ export const registerWebhookHandler =
         success: false,
         error:
           error instanceof Error
-            ? error.message
+            ? describeAutosignlyError(error)
             : 'Could not reach Autosignly with these credentials.',
       };
     }
