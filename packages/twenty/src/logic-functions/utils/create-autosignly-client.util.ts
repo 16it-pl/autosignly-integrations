@@ -1,4 +1,7 @@
 import { AutosignlyClient } from '@16it/autosignly';
+import { kv } from 'twenty-sdk/logic-function';
+
+import { WEBHOOK_SIGNING_KEY_KV_KEY } from 'src/logic-functions/utils/get-webhook-claim-key.util';
 
 export class MissingCredentialsError extends Error {
   constructor() {
@@ -31,12 +34,15 @@ export const createAutosignlyClient = (): AutosignlyClient => {
   );
 };
 
-export const getWebhookSecret = (): string => {
-  const secret = process.env.AUTOSIGNLY_WEBHOOK_SECRET;
+// The key this app registered for itself wins; a pasted one is the fallback for
+// a workspace that had to register from the Autosignly panel instead.
+export const getWebhookSecret = async (): Promise<string> => {
+  const registered = await kv.get<string>(WEBHOOK_SIGNING_KEY_KV_KEY);
+  const secret = registered ?? process.env.AUTOSIGNLY_WEBHOOK_SECRET;
 
   if (!secret) {
     throw new Error(
-      'AUTOSIGNLY_WEBHOOK_SECRET is not set. Register the webhook URL in Autosignly and paste the signing key back into the app settings.',
+      'No webhook signing key. Press "Check and register" in the app settings, or paste a key from the Autosignly panel.',
     );
   }
 

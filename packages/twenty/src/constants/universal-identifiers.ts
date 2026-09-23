@@ -1,6 +1,6 @@
 export const APP_DISPLAY_NAME = 'Autosignly';
 export const APP_DESCRIPTION =
-  'Send documents from your CRM for electronic signature and get the signed PDF back.';
+  'E-signature with eIDAS, pay-as-you-go. Sign from any record, get the PDF back.';
 
 export const APPLICATION_UNIVERSAL_IDENTIFIER =
   '30a4b13f-ab17-4176-90f1-5cfba4f404d4';

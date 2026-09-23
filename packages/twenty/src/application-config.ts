@@ -21,7 +21,7 @@ export default defineApplication({
     'public/gallery/03-signature-status.png',
     'public/gallery/04-settings.png',
   ],
-  author: 'Autosignly',
+  author: '16it',
   category: 'Productivity',
   websiteUrl: 'https://autosignly.eu',
   termsUrl: 'https://autosignly.eu/terms',
@@ -45,7 +45,7 @@ export default defineApplication({
       universalIdentifier: WEBHOOK_SECRET_VARIABLE_UNIVERSAL_IDENTIFIER,
       label: 'Webhook signing key',
       description:
-        'Paste this after registering the webhook URL shown below in Autosignly. Without it, signed documents never come back.',
+        'Left empty on purpose: "Check and register" stores the key for you. Fill it in only when you registered from the Autosignly panel instead, or rotated the key there.',
       isSecret: true,
     },
     AUTOSIGNLY_API_URL: {

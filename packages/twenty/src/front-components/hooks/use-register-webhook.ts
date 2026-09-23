@@ -3,14 +3,19 @@ import { RestApiClient } from 'twenty-client-sdk/rest';
 
 import { ROUTE_REGISTER_WEBHOOK } from 'src/constants/route-paths.constant';
 import { asRecord } from 'src/front-components/utils/as-record.util';
+import { type RelayStep } from 'src/logic-functions/utils/build-relay-steps.util';
 
 export type WebhookRegistration = {
   success: boolean;
   webhookUrl?: string;
+  isRelayOnly?: boolean;
+  didRegister?: boolean;
+  wasAlreadyRegistered?: boolean;
   companyId?: string;
   environmentId?: string;
   environmentType?: string;
   isWebhookSecretSet?: boolean;
+  relaySteps?: RelayStep[];
   error?: string;
 };
 
@@ -20,13 +25,15 @@ export const useRegisterWebhook = () => {
     WebhookRegistration | undefined
   >();
 
-  const registerWebhook = async (): Promise<void> => {
+  // `register: false` only reports where things stand, which is what opening
+  // the screen does. The button is what actually registers.
+  const registerWebhook = async (register = true): Promise<void> => {
     setIsRegistering(true);
 
     try {
       const client = new RestApiClient();
       const result = asRecord(
-        await client.post(`/s${ROUTE_REGISTER_WEBHOOK}`, {}),
+        await client.post(`/s${ROUTE_REGISTER_WEBHOOK}`, { register }),
       );
 
       setRegistration(result as WebhookRegistration);

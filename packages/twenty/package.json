@@ -39,7 +39,7 @@
     "vitest": "^4.0.0"
   },
   "dependencies": {
-    "@16it/autosignly": "^1.0.1",
+    "@16it/autosignly": "^1.0.3",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@sniptt/guards": "^0.2.0",
