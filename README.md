@@ -10,6 +10,7 @@ Pay as you go, no subscription, free sandboxes.
 | Package | What it is | Status |
 |---|---|---|
 | [`packages/twenty`](packages/twenty) | App for [Twenty CRM](https://twenty.com): send a record's attachment for signature and get the signed PDF back | In development |
+| [`packages/n8n`](packages/n8n) | Community node ([`n8n-nodes-autosignly`](https://www.npmjs.com/package/n8n-nodes-autosignly) on npm) for [n8n](https://n8n.io): send documents for signature and react to signing events from any workflow | In development |
 
 More connectors are planned. If you want one, open an issue.
 
@@ -23,6 +24,14 @@ cd packages/twenty
 yarn install
 yarn twenty docker:start   # local Twenty on http://localhost:2020
 yarn twenty dev            # build and sync the app into it
+```
+
+The n8n node needs Node 24:
+
+```bash
+cd packages/n8n
+npm install
+npm run dev   # runs n8n locally with this package linked in
 ```
 
 ## Links

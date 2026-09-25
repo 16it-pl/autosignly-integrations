@@ -1,0 +1,18 @@
+{
+	"node": "n8n-nodes-autosignly.autosignlyTrigger",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Miscellaneous"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/16it-pl/autosignly-integrations/tree/main/packages/n8n#credentials"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/16it-pl/autosignly-integrations/tree/main/packages/n8n"
+			}
+		]
+	}
+}
