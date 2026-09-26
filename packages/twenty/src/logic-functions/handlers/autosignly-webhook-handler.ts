@@ -123,7 +123,7 @@ export const autosignlyWebhookHandler = async (
 
   // Verified before anything else happens: the resolver could not check it.
   try {
-    verify(rawBody, signature, getWebhookSecret(), timestamp);
+    verify(rawBody, signature, await getWebhookSecret(), timestamp);
   } catch (error) {
     // Loud on purpose: the resolver already answered 200 to the sender, so a
     // rejection here is otherwise invisible. The usual cause is a signing key
@@ -131,7 +131,7 @@ export const autosignlyWebhookHandler = async (
     console.error(
       `[autosignly] webhook signature rejected: ${
         error instanceof Error ? error.message : String(error)
-      }. Check that AUTOSIGNLY_WEBHOOK_SECRET belongs to the same environment as the API key.`,
+      }. The signing key belongs to a different environment than the API key in use.`,
     );
 
     return {

@@ -5,10 +5,10 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@16it/autosignly@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "@16it/autosignly@npm:1.0.1"
-  checksum: 10c0/f3cae16ba9bd12885d98fa2e5667c901e2be42f69f886dd4a6c80d5d61e17615850f1e06fcf70e2e92461c44d5d3be6f0216e739b9f505d2084d969bddead57b
+"@16it/autosignly@npm:^1.0.3":
+  version: 1.0.3
+  resolution: "@16it/autosignly@npm:1.0.3"
+  checksum: 10c0/389a1de40a54bf8ec5cf4f944121ab8ecb7ac18e99060bcbe95b4878c90b4530af1512f2ca8b7724889db7d197890d5b17f7b58a79360f1185e84c5f31648648
   languageName: node
   linkType: hard
 
@@ -26,7 +26,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@autosignly/twenty@workspace:."
   dependencies:
-    "@16it/autosignly": "npm:^1.0.1"
+    "@16it/autosignly": "npm:^1.0.3"
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.0"
     "@sniptt/guards": "npm:^0.2.0"
