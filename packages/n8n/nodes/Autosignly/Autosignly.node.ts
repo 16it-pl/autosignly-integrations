@@ -1,14 +1,5 @@
 import { AutosignlyClient, PRODUCTION_BASE_URL } from '@16it/autosignly';
-import type {
-	ICredentialDataDecryptedObject,
-	ICredentialsDecrypted,
-	ICredentialTestFunctions,
-	IExecuteFunctions,
-	INodeCredentialTestResult,
-	INodeExecutionData,
-	INodeType,
-	INodeTypeDescription,
-} from 'n8n-workflow';
+import type { IExecuteFunctions, INodeExecutionData, INodeType, INodeTypeDescription } from 'n8n-workflow';
 import { NodeConnectionTypes } from 'n8n-workflow';
 
 import { attachmentFields, attachmentOperations } from './AttachmentDescription';
@@ -41,7 +32,6 @@ export class Autosignly implements INodeType {
 			{
 				name: 'autosignlyApi',
 				required: true,
-				testedBy: 'autosignlyApiTest',
 			},
 		],
 		properties: [
@@ -76,34 +66,6 @@ export class Autosignly implements INodeType {
 		loadOptions: {
 			getSignatureTypesForSigner,
 			getVerificationMethodsForSigner,
-		},
-		credentialTest: {
-			async autosignlyApiTest(
-				this: ICredentialTestFunctions,
-				credential: ICredentialsDecrypted<ICredentialDataDecryptedObject>,
-			): Promise<INodeCredentialTestResult> {
-				const data = credential.data ?? {};
-				const apiKey = String(data.apiKey ?? '');
-				const apiSecret = String(data.apiSecret ?? '');
-				const baseUrl = String(data.baseUrl || PRODUCTION_BASE_URL);
-
-				try {
-					const client = new AutosignlyClient(apiKey, apiSecret, { baseUrl, maxRetries: 0 });
-					const credentials = await client.describeCredentials();
-
-					if (!credentials.valid) {
-						return { status: 'Error', message: 'Autosignly rejected this API key and secret.' };
-					}
-
-					return {
-						status: 'OK',
-						message: `Connected — ${credentials.environmentType ?? 'unknown'} environment (company ${credentials.companyId ?? 'unknown'}).`,
-					};
-				} catch (error) {
-					const message = error instanceof Error ? error.message : String(error);
-					return { status: 'Error', message };
-				}
-			},
 		},
 	};
 

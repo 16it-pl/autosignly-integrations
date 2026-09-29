@@ -100,20 +100,24 @@ against the raw, unparsed bytes of the request body before doing anything else, 
 `webhooks.verify()`. A modified body or a timestamp older than 5 minutes is rejected with
 `401 Unauthorized` and never reaches your workflow.
 
-A delivery's `body` looks like this (confirmed against a live sandbox delivery):
+A delivery's `body` looks like this (confirmed against live sandbox deliveries):
 
 ```json
 {
   "eventId": "705d5dc2-6085-4563-b1ac-250b7862f41d",
-  "application": "AUTO_DOKUMENTY",
   "companyId": "...",
+  "companyApiId": "...",
   "eventType": "DOCUMENT_ALL_SIGNATURES_DONE",
-  "payload": { "documentId": "...", "companyApiId": "..." }
+  "payload": { "documentId": "..." }
 }
 ```
 
-Filter on `{{ $json.body.eventType }}`. Known event types: `DOCUMENT_SIGNED` (payload adds
-`signerId`, `email`), `DOCUMENT_ALL_SIGNATURES_DONE`, `DOCUMENT_CANCELLED`, `DOCUMENT_RESTORED`.
+`companyApiId` sits at the top level, next to `companyId` — not nested inside `payload`. The
+shape of `payload` itself depends on `eventType`: `DOCUMENT_SIGNED` carries `documentId`,
+`signerId` and `email`; `DOCUMENT_ALL_SIGNATURES_DONE`, `DOCUMENT_CANCELLED` and
+`DOCUMENT_RESTORED` carry only `documentId`.
+
+Filter on `{{ $json.body.eventType }}`.
 
 ## Known limitations
 

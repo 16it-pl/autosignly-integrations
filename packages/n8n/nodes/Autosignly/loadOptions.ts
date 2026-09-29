@@ -12,13 +12,25 @@ const VERIFICATION_METHOD_LABELS: Record<string, string> = {
 	WK: 'Bank / National ID (WK)',
 };
 
+/**
+ * The empty-value entry every list starts with: leaving it selected means
+ * "send nothing for this signer" so the document-level Additional Fields
+ * value (or Autosignly's own SES default) applies instead. Sending a
+ * concrete value unconditionally — even the same one Additional Fields
+ * already sets — makes the API prefer the per-signer field and silently
+ * ignore Additional Fields, which is not what a default is for.
+ */
+const UNSET_OPTION: INodePropertyOptions = { name: 'Default (From Additional Fields)', value: '' };
+
 const DEFAULT_SIGNATURE_TYPES: INodePropertyOptions[] = [
+	UNSET_OPTION,
 	{ name: 'Simple (SES)', value: 'SES' },
 	{ name: 'Advanced (AES)', value: 'AES' },
 	{ name: 'Qualified (QES)', value: 'QES' },
 ];
 
 const DEFAULT_VERIFICATION_METHODS: INodePropertyOptions[] = [
+	UNSET_OPTION,
 	{ name: 'SMS', value: 'SMS' },
 	{ name: 'Bank / National ID (WK)', value: 'WK' },
 ];
@@ -54,10 +66,13 @@ export async function getSignatureTypesForSigner(
 	try {
 		const policy = await getClient(this).then((client) => client.getSignaturePolicy(country));
 		if (policy.signatureTypes.length === 0) return DEFAULT_SIGNATURE_TYPES;
-		return policy.signatureTypes.map((allowed) => ({
-			name: SIGNATURE_TYPE_LABELS[allowed.type ?? ''] ?? allowed.type ?? '',
-			value: allowed.type ?? '',
-		}));
+		return [
+			UNSET_OPTION,
+			...policy.signatureTypes.map((allowed) => ({
+				name: SIGNATURE_TYPE_LABELS[allowed.type ?? ''] ?? allowed.type ?? '',
+				value: allowed.type ?? '',
+			})),
+		];
 	} catch {
 		return DEFAULT_SIGNATURE_TYPES;
 	}
@@ -76,10 +91,13 @@ export async function getVerificationMethodsForSigner(
 		const allowed = policy.signatureTypes.find((type) => type.type === signatureType);
 		const methods = allowed?.verificationMethods ?? [];
 		if (methods.length === 0) return DEFAULT_VERIFICATION_METHODS;
-		return methods.map((method) => ({
-			name: VERIFICATION_METHOD_LABELS[method] ?? method,
-			value: method,
-		}));
+		return [
+			UNSET_OPTION,
+			...methods.map((method) => ({
+				name: VERIFICATION_METHOD_LABELS[method] ?? method,
+				value: method,
+			})),
+		];
 	} catch {
 		return DEFAULT_VERIFICATION_METHODS;
 	}

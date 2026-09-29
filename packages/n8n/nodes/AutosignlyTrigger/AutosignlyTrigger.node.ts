@@ -31,7 +31,6 @@ export class AutosignlyTrigger implements INodeType {
 			{
 				name: 'autosignlyApi',
 				required: true,
-				testedBy: 'autosignlyApiTest',
 			},
 			{
 				name: 'autosignlyTriggerApi',
@@ -66,6 +65,15 @@ export class AutosignlyTrigger implements INodeType {
 					return true;
 				}
 
+				// No secret to verify with locally means `create` must run — even if
+				// Autosignly's server reports this URL as already configured. Its
+				// registration is permanent (see `create`), so relying on the server
+				// side alone here would report "already fine" with no way to ever
+				// obtain a usable secret again, stranding every future delivery.
+				if (!getCachedSigningKey(this)) {
+					return false;
+				}
+
 				const webhookUrl = this.getNodeWebhookUrl('default');
 				try {
 					const config = await getWebhookConfig(this);
@@ -86,6 +94,15 @@ export class AutosignlyTrigger implements INodeType {
 					return true;
 				}
 
+				if (getCachedSigningKey(this)) {
+					// A previous activation on this same workflow already registered
+					// and cached a secret — reactivating (after Unpublish) must reuse
+					// it rather than attempt to register again: Autosignly's
+					// registration is permanent from its side, so a second attempt
+					// would only fail with no way to recover a fresh secret anyway.
+					return true;
+				}
+
 				const webhookUrl = this.getNodeWebhookUrl('default');
 				if (!webhookUrl) {
 					throw new NodeOperationError(this.getNode(), "Could not determine this node's webhook URL");
@@ -102,7 +119,7 @@ export class AutosignlyTrigger implements INodeType {
 				if (result.alreadyRegistered) {
 					throw new NodeOperationError(
 						this.getNode(),
-						"Autosignly already has a different webhook URL registered for this environment, and its signing secret cannot be retrieved again through the API. Either update the URL in Autosignly's webhook settings to the one shown above and generate a new key there, or paste that key into this node's Autosignly Webhook Signing Key credential directly.",
+						"Autosignly already has a webhook registered for this environment, and its signing secret cannot be retrieved again through the API (this can happen if the workflow's saved data was lost, or another workflow/tool registered first). Generate a new signing key on Autosignly's webhook settings page and paste it into this node's Autosignly Webhook Signing Key credential — reactivating this workflow again will not help, since Autosignly's registration does not change.",
 					);
 				}
 
@@ -111,10 +128,11 @@ export class AutosignlyTrigger implements INodeType {
 			},
 
 			async delete(this: IHookFunctions): Promise<boolean> {
-				// Autosignly has no API to unregister a webhook — this only forgets
-				// the secret cached locally, so the next activation attempts a fresh
-				// registration instead of reusing a stale one.
-				delete this.getWorkflowStaticData('node')[STATIC_DATA_KEY];
+				// Autosignly has no API to unregister a webhook, and its
+				// registration is permanent from its side regardless — clearing the
+				// secret cached here on Unpublish would only strand a later
+				// reactivation with no way to recover it (see `create`). Nothing to
+				// do; the cached secret is deliberately left in place.
 				return true;
 			},
 		},
@@ -125,14 +143,12 @@ export class AutosignlyTrigger implements INodeType {
 		const headerData = this.getHeaderData();
 
 		const manualSecret = await getManualSigningSecret(this);
-		const staticData = this.getWorkflowStaticData('node');
-		const autoSecret = typeof staticData[STATIC_DATA_KEY] === 'string' ? (staticData[STATIC_DATA_KEY] as string) : '';
-		const signingSecret = manualSecret || autoSecret;
+		const signingSecret = manualSecret || getCachedSigningKey(this);
 
 		if (!signingSecret) {
 			throw new NodeOperationError(
 				this.getNode(),
-				'No webhook signing secret available. Deactivate and reactivate this workflow so it can register itself with Autosignly, or paste a secret into the Autosignly Webhook Signing Key credential.',
+				"No webhook signing secret available. Generate a new signing key on Autosignly's webhook settings page and paste it into the Autosignly Webhook Signing Key credential — this workflow's own auto-registration attempt did not leave a usable secret behind.",
 			);
 		}
 
@@ -183,6 +199,20 @@ async function getManualSigningSecret(context: IHookFunctions | IWebhookFunction
 	} catch {
 		return '';
 	}
+}
+
+/**
+ * The secret this node cached from its own auto-registration, if any. Kept
+ * in workflow static data rather than a credential: nothing in n8n's node
+ * API lets a webhook lifecycle method create or update a credential entry
+ * (only read one), so static data — durable across restarts, though not
+ * encrypted like the Credentials store — is the only persistence this node
+ * itself can write to. `getManualSigningSecret` and its encrypted
+ * credential remain the answer whenever that distinction matters.
+ */
+function getCachedSigningKey(context: IHookFunctions | IWebhookFunctions): string {
+	const staticData = context.getWorkflowStaticData('node');
+	return typeof staticData[STATIC_DATA_KEY] === 'string' ? (staticData[STATIC_DATA_KEY] as string) : '';
 }
 
 function firstHeaderValue(value: string | string[] | undefined): string | undefined {

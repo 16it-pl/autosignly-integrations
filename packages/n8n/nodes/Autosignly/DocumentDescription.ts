@@ -92,8 +92,8 @@ const signersField: INodeProperties = {
 					displayName: 'Signature Type Name or ID',
 					name: 'signatureType',
 					type: 'options',
-					default: 'SES',
-					description: 'Loaded from Autosignly\'s signature policy for the Country above. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+					default: '',
+					description: 'Leave as "Default" to use the Signature Type from Additional Fields (or Autosignly\'s own SES default) for this signer. Loaded from Autosignly\'s signature policy for the Country above. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 					typeOptions: {
 						loadOptionsMethod: 'getSignatureTypesForSigner',
 						loadOptionsDependsOn: ['&country'],
@@ -103,8 +103,8 @@ const signersField: INodeProperties = {
 					displayName: 'Signature Verification Method Name or ID',
 					name: 'signatureVerificationMethod',
 					type: 'options',
-					default: 'SMS',
-					description: 'Loaded from Autosignly\'s signature policy for the Country and Signature Type above. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+					default: '',
+					description: 'Leave as "Default" to use the Verification Method from Additional Fields for this signer. Loaded from Autosignly\'s signature policy for the Country and Signature Type above. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 					displayOptions: { show: { signatureType: ['AES'] } },
 					typeOptions: {
 						loadOptionsMethod: 'getVerificationMethodsForSigner',
