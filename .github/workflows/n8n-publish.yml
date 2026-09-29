@@ -1,0 +1,148 @@
+name: n8n-nodes-autosignly publish
+
+# Releasing the package, in three deliberate steps:
+#
+#   1. verify   — lint and build the current -dev.N, to prove the tree ships
+#   2. promote  — 0.1.0-dev.0 -> 0.1.0, commit, tag, then 0.1.1-dev.0
+#   3. publish  — build the tagged commit and upload it to npm
+#
+# Steps 2 and 3 both run in an environment, so each waits for a reviewer
+# configured there: once to approve cutting the version, once to approve the
+# upload. Without required reviewers the run passes straight through and the
+# gate is decorative.
+#
+# The "n8n" environment name is not free to change: it is registered on npm
+# as part of the trusted publisher, and the OIDC token carries it as a claim.
+# A mismatch there is rejected at publish time, not at configuration time.
+#
+# npm publish also carries a provenance attestation (--provenance), which n8n
+# has required for every community node published via CI since May 1 2026 —
+# it lets anyone verify the package was built by this exact workflow, from
+# this exact repository and commit, rather than from someone's laptop.
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: packages/n8n
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: packages/n8n/.nvmrc
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Report what would be released
+        run: |
+          current=$(node -p "require('./package.json').version")
+          echo "Current version: $current"
+          echo "Promote would release: ${current%%-dev*}"
+
+  promote:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: release-approval
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.cut.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: packages/n8n/.nvmrc
+
+      - id: cut
+        name: Cut the release version and open the next one
+        run: |
+          set -euo pipefail
+
+          current=$(node -p "require('./package.json').version")
+          case "$current" in
+            *-dev.*) ;;
+            *) echo "version '$current' is not a -dev version — nothing to promote" >&2; exit 1 ;;
+          esac
+
+          release="${current%%-dev*}"
+          case "$release" in
+            *.*.*) ;;
+            *) echo "version '$release' is not MAJOR.MINOR.PATCH" >&2; exit 1 ;;
+          esac
+          next="${release%.*}.$(( ${release##*.} + 1 ))-dev.0"
+          tag="n8n/v${release}"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "tag ${tag} already exists — ${release} was already released" >&2
+            exit 1
+          fi
+
+          echo "==> ${current}  ->  release ${release}  (tag ${tag})  ->  next dev ${next}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # --no-git-tag-version: the tag is created below with the package
+          # prefix, since this repository is meant to hold a package per
+          # integration.
+          npm version "$release" --no-git-tag-version
+          git commit -am "release: $(node -p "require('./package.json').name") ${release}"
+          git tag -a "${tag}" -m "${tag}"
+
+          npm version "$next" --no-git-tag-version
+          git commit -am "chore: start ${next} [skip ci]"
+
+          git push origin "HEAD:${GITHUB_REF_NAME}" --follow-tags
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: [verify, promote]
+    runs-on: ubuntu-latest
+    environment: n8n
+    permissions:
+      # Trusted publishing: npm mints a short-lived credential from this
+      # token and signs a provenance attestation with it, so no NPM_TOKEN
+      # ever has to live in the repository.
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The tag, not the branch: promote left a second commit that
+          # already opened the next dev version.
+          ref: ${{ needs.promote.outputs.tag }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: packages/n8n/.nvmrc
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish to npm
+        run: |
+          version=$(node -p "require('./package.json').version")
+          case "$version" in
+            *-dev.*) echo "Refusing to publish $version" >&2; exit 1 ;;
+          esac
+          echo "Publishing $version"
+          npm publish --provenance

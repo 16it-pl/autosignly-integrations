@@ -1,0 +1,61 @@
+{
+	"name": "n8n-nodes-autosignly",
+	"version": "0.1.0-dev.0",
+	"description": "Send documents for electronic signature with Autosignly, and react to signing events, from n8n workflows.",
+	"license": "Apache-2.0",
+	"author": {
+		"name": "Mateusz Błąkała",
+		"email": "mateusz.blakala@16it.pl"
+	},
+	"engines": {
+		"node": ">=24.0.0"
+	},
+	"keywords": [
+		"n8n-community-node-package",
+		"autosignly",
+		"electronic-signature",
+		"eidas"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/16it-pl/autosignly-integrations.git",
+		"directory": "packages/n8n"
+	},
+	"homepage": "https://autosignly.eu",
+	"bugs": "https://github.com/16it-pl/autosignly-integrations/issues",
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"prepublishOnly": "n8n-node prerelease"
+	},
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": false,
+		"credentials": [
+			"dist/credentials/AutosignlyApi.credentials.js",
+			"dist/credentials/AutosignlyTriggerApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/Autosignly/Autosignly.node.js",
+			"dist/nodes/AutosignlyTrigger/AutosignlyTrigger.node.js"
+		]
+	},
+	"dependencies": {
+		"@16it/autosignly": "^1.0.2"
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "^0.48.4",
+		"eslint": "^9.39.4",
+		"prettier": "^3.8.3",
+		"typescript": "^5.9.3"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}

@@ -1,0 +1,35 @@
+name: n8n-nodes-autosignly CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['packages/n8n/**', '.github/workflows/n8n-ci.yml']
+  pull_request:
+    paths: ['packages/n8n/**', '.github/workflows/n8n-ci.yml']
+
+concurrency:
+  group: n8n-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: packages/n8n
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: packages/n8n/.nvmrc
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
