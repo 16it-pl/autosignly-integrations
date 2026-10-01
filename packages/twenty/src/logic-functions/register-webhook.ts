@@ -4,7 +4,10 @@ import { defineLogicFunction } from 'twenty-sdk/define';
 import { kv, type RoutePayload } from 'twenty-sdk/logic-function';
 
 import { LF_REGISTER_WEBHOOK_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
-import { createAutosignlyClient } from 'src/logic-functions/utils/create-autosignly-client.util';
+import {
+  createAutosignlyClient,
+  getWebhookSecret,
+} from 'src/logic-functions/utils/create-autosignly-client.util';
 import { describeAutosignlyError } from 'src/logic-functions/utils/describe-autosignly-error.util';
 import {
   getWebhookClaimKey,
@@ -191,11 +194,13 @@ const readExistingRegistration = async (
   }
 };
 
-const hasSigningKey = async (): Promise<boolean> =>
-  Boolean(
-    (await kv.get<string>(WEBHOOK_SIGNING_KEY_KV_KEY)) ??
-      process.env.AUTOSIGNLY_WEBHOOK_SECRET,
-  );
+const hasSigningKey = async (): Promise<boolean> => {
+  try {
+    return Boolean(await getWebhookSecret());
+  } catch {
+    return false;
+  }
+};
 
 export default defineLogicFunction({
   universalIdentifier: LF_REGISTER_WEBHOOK_UNIVERSAL_IDENTIFIER,

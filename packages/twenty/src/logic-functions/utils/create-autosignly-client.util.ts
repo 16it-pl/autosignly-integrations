@@ -34,17 +34,23 @@ export const createAutosignlyClient = (): AutosignlyClient => {
   );
 };
 
-// The key this app registered for itself wins; a pasted one is the fallback for
-// a workspace that had to register from the Autosignly panel instead.
+// A pasted key wins over the one this app stored for itself. Rotating the key
+// in the Autosignly panel is the only way to replace it, because registration
+// is granted once per environment and cannot be repeated from here.
 export const getWebhookSecret = async (): Promise<string> => {
-  const registered = await kv.get<string>(WEBHOOK_SIGNING_KEY_KV_KEY);
-  const secret = registered ?? process.env.AUTOSIGNLY_WEBHOOK_SECRET;
+  const pasted = process.env.AUTOSIGNLY_WEBHOOK_SECRET?.trim();
 
-  if (!secret) {
+  if (pasted) {
+    return pasted;
+  }
+
+  const registered = (await kv.get<string>(WEBHOOK_SIGNING_KEY_KV_KEY))?.trim();
+
+  if (!registered) {
     throw new Error(
       'No webhook signing key. Press "Check and register" in the app settings, or paste a key from the Autosignly panel.',
     );
   }
 
-  return secret;
+  return registered;
 };
